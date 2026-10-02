@@ -1,0 +1,7 @@
+{
+  "quickshell": "0.3.1",
+  "qt": "6.8.3",
+  "architecture": "x86_64",
+  "minimum_build_environment": "Ubuntu 24.04 LTS",
+  "status": "pinned_build_recipe; physical/runtime_validation_pending"
+}

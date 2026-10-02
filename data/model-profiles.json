@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "id": "macbookpro8-1-ports-v1",
+      "models": ["MacBookPro8,1"],
+      "expected": ["sd_reader", "audio_jack", "firewire", "thunderbolt", "optical"],
+      "ports": {"usb_a": 2, "sd": 1, "audio_jack": 1, "firewire": 1, "thunderbolt": 1, "ethernet": 1},
+      "sources": ["https://support.apple.com/en-ke/112600", "https://support.apple.com/en-mo/111341"]
+    },
+    {
+      "id": "macbookpro12-1-ports-v1",
+      "models": ["MacBookPro12,1"],
+      "expected": ["sd_reader", "audio_jack", "thunderbolt"],
+      "ports": {"usb_a": 2, "sd": 1, "audio_jack": 1, "thunderbolt": 2, "hdmi": 1},
+      "sources": ["https://support.apple.com/en-ie/111959", "https://support.apple.com/en-ie/108052"]
+    },
+    {
+      "id": "macbookpro14-1-ports-v1",
+      "models": ["MacBookPro14,1"],
+      "expected": ["audio_jack", "thunderbolt"],
+      "ports": {"usb_c": 2, "thunderbolt_shared_usb_c": 2, "audio_jack": 1},
+      "sources": ["https://support.apple.com/en-ge/111951", "https://support.apple.com/en-ie/108052"]
+    },
+    {
+      "id": "macmini6-ports-v1",
+      "models": ["Macmini6,1", "Macmini6,2"],
+      "expected": ["sd_reader", "audio_jack", "firewire", "thunderbolt", "speaker"],
+      "ports": {"usb_a": 4, "sd": 1, "audio_jack": 2, "firewire": 1, "thunderbolt": 1, "hdmi": 1, "ethernet": 1},
+      "sources": ["https://support.apple.com/en-ae/111926", "https://www.apple.com/accessibility/pdf/Mac_mini_Late_2012_VPAT.pdf"]
+    },
+    {
+      "id": "imac12-2-ports-v1",
+      "models": ["iMac12,2"],
+      "expected": ["sd_reader", "audio_jack", "firewire", "thunderbolt", "optical"],
+      "ports": {"usb_a": 4, "sd": 1, "audio_jack": 2, "firewire": 1, "thunderbolt": 2, "ethernet": 1},
+      "sources": ["https://support.apple.com/en-my/112569"]
+    },
+    {
+      "id": "macpro5-1-ports-v1",
+      "models": ["MacPro5,1"],
+      "expected": ["audio_jack", "firewire", "speaker"],
+      "ports": {"usb_a": 5, "audio_jack": 2, "firewire": 4, "ethernet": 2},
+      "sources": ["https://support.apple.com/en-my/112578"]
+    }
+  ]
+}

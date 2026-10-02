@@ -1,0 +1,25 @@
+[package]
+name = "omacdiag"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Evidence-based Linux diagnostics for Intel Macs"
+license = "MIT"
+
+[dependencies]
+clap = { version = "4.6", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
+
+[profile.release]
+lto = "thin"
+strip = true
+
+[[bin]]
+name = "omacdiag"
+path = "src/main.rs"
+
+[[bin]]
+name = "omacdiag-helper"
+path = "src/bin/helper.rs"

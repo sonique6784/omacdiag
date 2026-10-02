@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=omacdiag
+Comment=Intel Mac hardware inspection and JSON reports
+Exec=/opt/omacdiag/scripts/launch-ui.sh
+Terminal=false
+Categories=System;Utility;

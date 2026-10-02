@@ -1,0 +1,627 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:omacdiag:inventory:v1",
+  "$defs": {
+    "machine": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "manufacturer": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "serial": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "os": {
+          "type": "string"
+        },
+        "distribution": {
+          "type": "string"
+        },
+        "kernel": {
+          "type": "string"
+        },
+        "architecture": {
+          "type": "string"
+        },
+        "model_profile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected_ports": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "profile_sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "manufacturer",
+        "model",
+        "serial",
+        "os",
+        "distribution",
+        "kernel",
+        "architecture",
+        "model_profile",
+        "expected_ports",
+        "profile_sources"
+      ]
+    },
+    "device": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "cpu",
+            "memory",
+            "storage",
+            "usb",
+            "camera",
+            "microphone",
+            "speaker",
+            "audio_jack",
+            "sd_reader",
+            "gpu",
+            "display",
+            "battery",
+            "power",
+            "network",
+            "bluetooth",
+            "keyboard",
+            "trackpad",
+            "thermal",
+            "fan",
+            "optical",
+            "firewire",
+            "thunderbolt",
+            "touch_bar",
+            "keyboard_backlight"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "recognition": {
+          "type": "string",
+          "enum": [
+            "detected",
+            "expected_not_detected",
+            "unknown",
+            "not_applicable"
+          ]
+        },
+        "sysfs_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "node": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "driver": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "recognition",
+        "sysfs_path",
+        "node",
+        "driver",
+        "attributes",
+        "evidence"
+      ]
+    },
+    "inventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "machine": {
+          "$ref": "#/$defs/machine"
+        },
+        "devices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/device"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "machine",
+        "devices",
+        "warnings"
+      ]
+    },
+    "equipment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "instructions": {
+          "type": "string"
+        },
+        "required_for": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "readiness": {
+          "type": "string",
+          "enum": [
+            "available",
+            "unavailable",
+            "uncertain"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "instructions",
+        "required_for",
+        "readiness"
+      ]
+    },
+    "test": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "device_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "probe": {
+          "type": "string"
+        },
+        "guided": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "equipment": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "permission": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "instructions": {
+          "type": "string"
+        },
+        "estimated_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deadline_seconds": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "id",
+        "device_id",
+        "name",
+        "probe",
+        "guided",
+        "required",
+        "equipment",
+        "permission",
+        "instructions",
+        "estimated_seconds",
+        "deadline_seconds"
+      ]
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "type": "string",
+          "enum": [
+            "quick",
+            "extended"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "automatic",
+            "guided"
+          ]
+        },
+        "tests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/test"
+          }
+        },
+        "equipment": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/equipment"
+          }
+        },
+        "estimated_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "notices": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "profile",
+        "mode",
+        "tests",
+        "equipment",
+        "estimated_seconds",
+        "notices"
+      ]
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": true,
+        "unit": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "unit"
+      ]
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed",
+            "inconclusive",
+            "blocked",
+            "skipped",
+            "unsupported",
+            "cancelled"
+          ]
+        },
+        "note": {
+          "type": "string"
+        },
+        "recorded_at": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "description": "UTC Unix epoch milliseconds, encoded as a string"
+        },
+        "details": true
+      },
+      "required": [
+        "verdict",
+        "note",
+        "recorded_at",
+        "details"
+      ]
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "test_id": {
+          "type": "string"
+        },
+        "device_id": {
+          "type": "string"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed",
+            "inconclusive",
+            "blocked",
+            "skipped",
+            "unsupported",
+            "cancelled"
+          ]
+        },
+        "reason_code": {
+          "type": "string"
+        },
+        "automatic_outcome": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "passed",
+                "failed",
+                "inconclusive",
+                "blocked",
+                "skipped",
+                "unsupported",
+                "cancelled"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "automatic_reason_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "description": "UTC Unix epoch milliseconds, encoded as a string"
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "measurements": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/measurement"
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "observation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/observation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "test_id",
+        "device_id",
+        "outcome",
+        "reason_code",
+        "automatic_outcome",
+        "automatic_reason_code",
+        "summary",
+        "started_at",
+        "duration_ms",
+        "measurements",
+        "evidence",
+        "observation"
+      ]
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "selected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "incomplete": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "selected",
+        "completed",
+        "passed",
+        "failed",
+        "incomplete",
+        "gaps"
+      ]
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "application_version": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "description": "UTC Unix epoch milliseconds, encoded as a string"
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9]+$",
+              "description": "UTC Unix epoch milliseconds, encoded as a string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "prepared",
+            "running",
+            "completed",
+            "cancelled"
+          ]
+        },
+        "overall": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed",
+            "incomplete"
+          ]
+        },
+        "inventory": {
+          "$ref": "#/$defs/inventory"
+        },
+        "plan": {
+          "$ref": "#/$defs/plan"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/result"
+          }
+        },
+        "coverage": {
+          "$ref": "#/$defs/coverage"
+        }
+      },
+      "required": [
+        "schema_version",
+        "application_version",
+        "session_id",
+        "started_at",
+        "finished_at",
+        "state",
+        "overall",
+        "inventory",
+        "plan",
+        "results",
+        "coverage"
+      ]
+    }
+  },
+  "$ref": "#/$defs/inventory"
+}

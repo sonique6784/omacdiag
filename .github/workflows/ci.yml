@@ -1,0 +1,46 @@
+name: Core and contracts
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  rust:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+      - run: cargo build --locked
+      - run: cargo build --locked --examples
+      - run: python3 -m unittest discover -s tests -p test_package.py
+        if: runner.os == 'Linux'
+      - uses: astral-sh/setup-uv@v6
+      - run: uv run scripts/validate_contracts.py
+  linux-distributions:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        image: [ubuntu:24.04, ubuntu:26.04, debian:13, fedora:44]
+    container: ${{ matrix.image }}
+    steps:
+      - name: Install build tools
+        run: |
+          if command -v apt-get >/dev/null; then
+            apt-get update
+            apt-get install -y curl ca-certificates build-essential git
+          else
+            dnf install -y curl ca-certificates gcc gcc-c++ make git
+          fi
+      - uses: actions/checkout@v4
+      - name: Build and exercise portable fixtures
+        shell: bash
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup.sh
+          sh /tmp/rustup.sh -y --profile minimal --default-toolchain 1.93.0
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cargo test --locked
+          cargo build --locked --release

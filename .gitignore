@@ -1,0 +1,6 @@
+/target/
+/dist/
+/reports/
+*.tmp
+__pycache__/
+/macbookair-11-2012.json
