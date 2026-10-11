@@ -48,6 +48,9 @@ fn inventory(devices: Vec<Device>) -> Inventory {
             manufacturer: "Apple Inc.".into(),
             model: "MacBookPro12,1".into(),
             serial: None,
+            omarchy_version: None,
+            board_name: None,
+            board_version: None,
             os: "linux".into(),
             distribution: "fixture".into(),
             kernel: "fixture".into(),
@@ -56,6 +59,7 @@ fn inventory(devices: Vec<Device>) -> Inventory {
             expected_ports: BTreeMap::new(),
             profile_sources: vec![],
         },
+        pci_devices: None,
         devices,
         warnings: vec![],
     }
@@ -65,6 +69,32 @@ fn output_device() -> Device {
     d.attributes
         .insert("alsa_device".into(), "plughw:CARD=PCH,DEV=0".into());
     d
+}
+
+#[test]
+fn gpu_3d_is_separate_from_readback_in_both_profiles() {
+    let gpu = Device::detected(Kind::Gpu, "gpu:0000:00:02.0", "Fixture GPU");
+    for (profile, duration) in [(Profile::Quick, 5), (Profile::Extended, 18)] {
+        let plan = planner::build(
+            &inventory(vec![gpu.clone()]),
+            profile,
+            Mode::Automatic,
+            &BTreeMap::new(),
+            None,
+        );
+        assert!(
+            plan.tests
+                .iter()
+                .any(|test| test.id == "gpu:0000:00:02.0/render" && test.probe == "gpu")
+        );
+        assert!(
+            plan.tests
+                .iter()
+                .any(|test| test.id == "gpu:0000:00:02.0/3d"
+                    && test.probe == "gpu_3d"
+                    && test.estimated_seconds == duration)
+        );
+    }
 }
 
 #[test]
@@ -97,6 +127,8 @@ fn pci_camera_is_detected_without_a_usb_or_capture_endpoint() {
     let s = Scratch::new();
     s.put("sys/class/dmi/id/sys_vendor", "Apple Inc.");
     s.put("sys/class/dmi/id/product_name", "MacBookPro12,1");
+    s.put("sys/class/dmi/id/board_name", "Mac-123");
+    s.put("sys/class/dmi/id/board_version", "MacBookPro12,1");
     s.put("sys/bus/pci/devices/0000:02:00.0/class", "0x048000");
     s.put("sys/bus/pci/devices/0000:02:00.0/vendor", "0x14e4");
     s.put("sys/bus/pci/devices/0000:02:00.0/device", "0x1570");
@@ -107,6 +139,8 @@ fn pci_camera_is_detected_without_a_usb_or_capture_endpoint() {
         etc: s.0.join("etc"),
         dev: s.0.join("dev"),
     });
+    assert_eq!(i.machine.board_name.as_deref(), Some("Mac-123"));
+    assert_eq!(i.machine.board_version.as_deref(), Some("MacBookPro12,1"));
     let cameras: Vec<_> = i
         .devices
         .iter()
@@ -155,6 +189,8 @@ fn unknown_models_do_not_invent_expected_hardware() {
         dev: s.0.join("dev"),
     });
     assert!(i.machine.model_profile.is_none());
+    assert!(i.machine.board_name.is_none());
+    assert!(i.machine.board_version.is_none());
     assert!(i.devices.is_empty());
 }
 #[test]

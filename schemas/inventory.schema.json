@@ -22,6 +22,36 @@
             }
           ]
         },
+        "omarchy_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "board_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "board_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "os": {
           "type": "string"
         },
@@ -69,6 +99,101 @@
         "model_profile",
         "expected_ports",
         "profile_sources"
+      ]
+    },
+    "pci_identifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "id"
+      ]
+    },
+    "pci_device": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "class": {
+          "$ref": "#/$defs/pci_identifier"
+        },
+        "vendor": {
+          "$ref": "#/$defs/pci_identifier"
+        },
+        "device": {
+          "$ref": "#/$defs/pci_identifier"
+        },
+        "subsystem_vendor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/pci_identifier"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subsystem_device": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/pci_identifier"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "revision": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "programming_interface": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "driver": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "address",
+        "class",
+        "vendor",
+        "device",
+        "subsystem_vendor",
+        "subsystem_device",
+        "revision",
+        "programming_interface",
+        "driver"
       ]
     },
     "device": {
@@ -183,6 +308,19 @@
         },
         "machine": {
           "$ref": "#/$defs/machine"
+        },
+        "pci_devices": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/pci_device"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "devices": {
           "type": "array",

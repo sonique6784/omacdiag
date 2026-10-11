@@ -237,15 +237,26 @@ pub fn build(
                 "Insert the compatible headset when prompted. Listen to the selected output, verify speaker-to-headset routing, and test microphone input only if this jack supports it.",
                 5,
             ),
-            Kind::Gpu => add(
-                "render",
-                "Hardware render/readback",
-                "gpu",
-                false,
-                &[],
-                "Select this GPU's EGL device, render colour quadrants and verify pixel readback. Software rendering cannot pass.",
-                if extended { 60 } else { 2 },
-            ),
+            Kind::Gpu => {
+                add(
+                    "render",
+                    "Hardware render/readback",
+                    "gpu",
+                    false,
+                    &[],
+                    "Select this GPU's EGL device, render colour quadrants and verify pixel readback. Software rendering cannot pass.",
+                    if extended { 60 } else { 2 },
+                );
+                add(
+                    "3d",
+                    "3D rendering and offscreen throughput",
+                    "gpu_3d",
+                    false,
+                    &[],
+                    "Render textured 3D geometry with shaders and depth testing on this GPU, verify pixels, and measure synchronized offscreen FPS. FPS is evidence, not a pass threshold.",
+                    if extended { 18 } else { 5 },
+                );
+            }
             Kind::Display => {
                 add(
                     "connection",

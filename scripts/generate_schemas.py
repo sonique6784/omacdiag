@@ -20,14 +20,24 @@ def obj(properties, required=None):
             "required": list(properties) if required is None else required}
 
 DEFS = {}
-DEFS["machine"] = obj(dict(manufacturer=STRING, model=STRING, serial=nullable(STRING), os=STRING,
-    distribution=STRING, kernel=STRING, architecture=STRING, model_profile=nullable(STRING),
-    expected_ports=mapping(INTEGER), profile_sources=array(STRING)))
+machine_properties = dict(manufacturer=STRING, model=STRING, serial=nullable(STRING),
+    omarchy_version=nullable(STRING), board_name=nullable(STRING), board_version=nullable(STRING),
+    os=STRING, distribution=STRING, kernel=STRING, architecture=STRING, model_profile=nullable(STRING),
+    expected_ports=mapping(INTEGER), profile_sources=array(STRING))
+DEFS["machine"] = obj(machine_properties, [key for key in machine_properties if key not in
+    ("omarchy_version", "board_name", "board_version")])
+DEFS["pci_identifier"] = obj(dict(name=STRING, id=STRING))
+DEFS["pci_device"] = obj(dict(address=STRING, **{"class": ref("pci_identifier")},
+    vendor=ref("pci_identifier"), device=ref("pci_identifier"),
+    subsystem_vendor=nullable(ref("pci_identifier")), subsystem_device=nullable(ref("pci_identifier")),
+    revision=nullable(STRING), programming_interface=nullable(STRING), driver=nullable(STRING)))
 DEFS["device"] = obj(dict(id=STRING, kind=enum(KINDS), name=STRING,
     recognition=enum(["detected", "expected_not_detected", "unknown", "not_applicable"]),
     sysfs_path=nullable(STRING), node=nullable(STRING), driver=nullable(STRING),
     attributes=mapping(STRING), evidence=array(STRING)))
-DEFS["inventory"] = obj(dict(schema_version={"const": 1}, machine=ref("machine"), devices=array(ref("device")), warnings=array(STRING)))
+inventory_properties = dict(schema_version={"const": 1}, machine=ref("machine"),
+    pci_devices=nullable(array(ref("pci_device"))), devices=array(ref("device")), warnings=array(STRING))
+DEFS["inventory"] = obj(inventory_properties, [key for key in inventory_properties if key != "pci_devices"])
 DEFS["equipment"] = obj(dict(id=STRING, name=STRING, instructions=STRING, required_for=array(STRING),
     readiness=enum(["available", "unavailable", "uncertain"])))
 DEFS["test"] = obj(dict(id=STRING, device_id=STRING, name=STRING, probe=STRING, guided={"type": "boolean"},

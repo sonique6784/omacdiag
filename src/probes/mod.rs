@@ -88,7 +88,7 @@ pub fn execute(request: &WorkerRequest) -> TestResult {
         "camera" | "camera_quality" | "microphone" | "microphone_speech" | "speaker"
         | "speaker_quality" | "acoustic" | "audio_jack" => media::execute(request, d),
         "keyboard_backlight" => backlight::execute(request, d),
-        "gpu" => gpu::execute(request, d),
+        "gpu" | "gpu_3d" => gpu::execute(request, d),
         "manual" => manual(request, "operator_confirmed"),
         _ => TestResult::new(
             t,
@@ -99,7 +99,7 @@ pub fn execute(request: &WorkerRequest) -> TestResult {
     }
 }
 fn selected_device_is_current(selected: &Device) -> bool {
-    let current = discovery::discover();
+    let current = discovery::discover_for_probe();
     current
         .devices
         .iter()
@@ -245,6 +245,9 @@ mod identity_tests {
                 manufacturer: "Fixture".into(),
                 model: "Fixture".into(),
                 serial: None,
+                omarchy_version: None,
+                board_name: None,
+                board_version: None,
                 os: "linux".into(),
                 distribution: "fixture".into(),
                 kernel: "fixture".into(),
@@ -253,6 +256,7 @@ mod identity_tests {
                 expected_ports: BTreeMap::new(),
                 profile_sources: vec![],
             },
+            pci_devices: None,
             devices: vec![device],
             warnings: vec![],
         };

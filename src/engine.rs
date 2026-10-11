@@ -119,7 +119,7 @@ pub fn run(ctx: RunContext) -> Result<(), String> {
             // Each attempt needs its own pre-action baseline. A retake of an
             // insertion or charging check must not reuse the first attempt's state.
             let mut baseline = if current_test.guided {
-                discovery::discover()
+                discovery::discover_for_probe()
             } else {
                 inventory.clone()
             };
@@ -715,6 +715,9 @@ mod tests {
                 manufacturer: "Apple".into(),
                 model: "fixture".into(),
                 serial: None,
+                omarchy_version: None,
+                board_name: None,
+                board_version: None,
                 os: "linux".into(),
                 distribution: "fixture".into(),
                 kernel: "fixture".into(),
@@ -723,6 +726,7 @@ mod tests {
                 expected_ports: BTreeMap::new(),
                 profile_sources: vec![],
             },
+            pci_devices: None,
             devices: vec![],
             warnings: vec![],
         };

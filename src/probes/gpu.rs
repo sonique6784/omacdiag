@@ -3,6 +3,55 @@ use super::*;
 pub fn execute(req: &WorkerRequest, d: &Device) -> TestResult {
     #[cfg(target_os = "linux")]
     {
+        if req.test.probe == "gpu_3d" {
+            return match linux::render_3d(
+                d,
+                if req.profile == Profile::Extended {
+                    15
+                } else {
+                    3
+                },
+            ) {
+                Ok(result) => {
+                    let mut r = TestResult::new(
+                        &req.test,
+                        Outcome::Passed,
+                        "gpu_3d_verified",
+                        "Selected GPU rendered textured 3D geometry with correct depth and pixel readback",
+                    );
+                    r.measure("vendor", result.vendor, "identifier");
+                    r.measure("renderer", result.renderer, "identifier");
+                    r.measure("gl_version", result.gl_version, "version");
+                    r.measure("glsl_version", result.glsl_version, "version");
+                    r.measure("max_texture_size", result.max_texture_size, "pixels");
+                    r.measure(
+                        "max_renderbuffer_size",
+                        result.max_renderbuffer_size,
+                        "pixels",
+                    );
+                    r.measure("max_vertex_attribs", result.max_vertex_attribs, "count");
+                    r.measure(
+                        "max_texture_image_units",
+                        result.max_texture_image_units,
+                        "count",
+                    );
+                    r.measure("offscreen_frames", result.frames, "frames");
+                    r.measure("offscreen_seconds", result.seconds, "s");
+                    r.measure(
+                        "offscreen_fps",
+                        result.frames as f64 / result.seconds,
+                        "fps",
+                    );
+                    r.measure("offscreen_resolution", "640×480", "pixels");
+                    r.measure("render_node", &d.node, "path");
+                    r.evidence.push("Synchronized offscreen throughput on a fixed workload; FPS is not displayed refresh rate or a pass threshold. This does not certify all 3D features or VRAM.".into());
+                    r
+                }
+                Err((reason, detail)) => {
+                    TestResult::new(&req.test, gpu_3d_outcome(reason), reason, detail)
+                }
+            };
+        }
         match linux::render(
             d,
             if req.profile == Profile::Extended {
@@ -51,6 +100,31 @@ pub fn execute(req: &WorkerRequest, d: &Device) -> TestResult {
 }
 
 #[cfg(target_os = "linux")]
+fn gpu_3d_outcome(reason: &str) -> Outcome {
+    match reason {
+        "readback_mismatch" | "gpu_operation_failed" => Outcome::Failed,
+        "thermal_limit" | "gpu_setup_failed" | "shader_failed" | "framebuffer_incomplete" => {
+            Outcome::Inconclusive
+        }
+        _ => Outcome::Unsupported,
+    }
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod outcome_tests {
+    use super::*;
+
+    #[test]
+    fn rendering_errors_and_environment_limits_have_distinct_outcomes() {
+        assert_eq!(gpu_3d_outcome("readback_mismatch"), Outcome::Failed);
+        assert_eq!(gpu_3d_outcome("gpu_operation_failed"), Outcome::Failed);
+        assert_eq!(gpu_3d_outcome("shader_failed"), Outcome::Inconclusive);
+        assert_eq!(gpu_3d_outcome("thermal_limit"), Outcome::Inconclusive);
+        assert_eq!(gpu_3d_outcome("render_node_missing"), Outcome::Unsupported);
+    }
+}
+
+#[cfg(target_os = "linux")]
 mod linux {
     use crate::model::Device;
     use std::{
@@ -60,6 +134,8 @@ mod linux {
     };
     type Handle = *mut c_void;
     type Failure = (&'static str, String);
+    mod three_d;
+    pub use three_d::render_3d;
     #[link(name = "dl")]
     unsafe extern "C" {
         fn dlopen(name: *const c_char, flags: i32) -> Handle;
@@ -122,7 +198,19 @@ mod linux {
         }
         Ok(unsafe { std::mem::transmute_copy(&p) })
     }
-    pub fn render(device: &Device, seconds: u64) -> Result<(String, u64), Failure> {
+    struct GpuSession {
+        // The EGL context must be destroyed before its shared library is unloaded.
+        _context: Context,
+        _library: Library,
+        get: unsafe extern "C" fn(*const c_char) -> Handle,
+        renderer: String,
+    }
+    impl GpuSession {
+        unsafe fn symbol<T: Copy>(&self, name: &CStr) -> Result<T, Failure> {
+            unsafe { extension(self.get, name) }
+        }
+    }
+    fn open(device: &Device) -> Result<GpuSession, Failure> {
         let node = device.node.as_ref().ok_or((
             "render_node_missing",
             "No render node is exposed for this GPU".into(),
@@ -153,7 +241,17 @@ mod linux {
             if query(count, devices.as_mut_ptr(), &mut count) == 0 {
                 return Err(("egl_devices_unavailable", "EGL enumeration failed".into()));
             }
-            let selected=devices.into_iter().take(count as usize).find(|d|{let p=string(*d,0x3377);!p.is_null()&&CStr::from_ptr(p).to_string_lossy()==node.as_str()}).ok_or(("gpu_mapping_unavailable","EGL device cannot be mapped to the selected DRM render node; no default-GPU substitution was made".into()))?;
+            let selected = devices
+                .into_iter()
+                .take(count as usize)
+                .find(|d| {
+                    let p = string(*d, 0x3377);
+                    !p.is_null() && CStr::from_ptr(p).to_string_lossy() == node.as_str()
+                })
+                .ok_or((
+                    "gpu_mapping_unavailable",
+                    "EGL device cannot be mapped to the selected DRM render node; no default-GPU substitution was made".into(),
+                ))?;
             let display = platform(0x313f, selected, ptr::null());
             if display.is_null() {
                 return Err((
@@ -256,6 +354,19 @@ mod linux {
                     format!("Software renderer cannot verify a hardware GPU: {renderer}"),
                 ));
             }
+            Ok(GpuSession {
+                _context: context,
+                _library: library,
+                get,
+                renderer,
+            })
+        }
+    }
+    pub fn render(device: &Device, seconds: u64) -> Result<(String, u64), Failure> {
+        let session = open(device)?;
+        unsafe {
+            let get = session.get;
+            let renderer = session.renderer.as_str();
             let enable: unsafe extern "C" fn(u32) = extension(get, c"glEnable")?;
             let scissor: unsafe extern "C" fn(i32, i32, i32, i32) = extension(get, c"glScissor")?;
             let clear_color: unsafe extern "C" fn(f32, f32, f32, f32) =
@@ -313,7 +424,7 @@ mod linux {
                     return Err(("thermal_limit", "Stopped at 90°C sensor threshold".into()));
                 }
             }
-            Ok((renderer, iterations))
+            Ok((renderer.to_string(), iterations))
         }
     }
 }

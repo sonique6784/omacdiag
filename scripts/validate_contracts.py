@@ -33,6 +33,14 @@ def main():
         raise SystemExit("Build the required fixture with `cargo build --locked --examples` first")
     synthetic = json.loads(subprocess.check_output([str(fixture)]))
     validators["report"].validate(synthetic)
+    assert synthetic["inventory"]["machine"]["omarchy_version"] == "4.0.4-1"
+    assert synthetic["inventory"]["machine"]["board_name"] == "Mac-66F35F19FE2A0D05"
+    assert synthetic["inventory"]["pci_devices"][0]["device"]["id"] == "0166"
+    legacy = json.loads(json.dumps(synthetic))
+    for key in ("omarchy_version", "board_name", "board_version"):
+        del legacy["inventory"]["machine"][key]
+    del legacy["inventory"]["pci_devices"]
+    validators["report"].validate(legacy)
     assert {result["outcome"] for result in synthetic["results"]} == {"passed", "failed", "inconclusive", "blocked", "skipped", "unsupported", "cancelled"}
     assert any(result["automatic_outcome"] is not None for result in synthetic["results"])
     assert any(result["automatic_outcome"] is None for result in synthetic["results"])
@@ -76,6 +84,10 @@ def main():
         try:
             until("hello")
             initial_inventory = until("inventory")["payload"]
+            assert "omarchy_version" in initial_inventory["machine"]
+            assert "board_name" in initial_inventory["machine"]
+            assert "board_version" in initial_inventory["machine"]
+            assert initial_inventory["pci_devices"] is None or isinstance(initial_inventory["pci_devices"], list)
             initial_plan = until("plan")["payload"]
             # Refresh must restore the complete catalogue and preserve the chosen profile/mode.
             send("prepare", selected_tests=[], profile="extended", mode="automatic")

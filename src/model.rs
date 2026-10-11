@@ -88,6 +88,12 @@ pub struct Machine {
     pub manufacturer: String,
     pub model: String,
     pub serial: Option<String>,
+    #[serde(default)]
+    pub omarchy_version: Option<String>,
+    #[serde(default)]
+    pub board_name: Option<String>,
+    #[serde(default)]
+    pub board_version: Option<String>,
     pub os: String,
     pub distribution: String,
     pub kernel: String,
@@ -95,6 +101,25 @@ pub struct Machine {
     pub model_profile: Option<String>,
     pub expected_ports: BTreeMap<String, u32>,
     pub profile_sources: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PciIdentifier {
+    pub name: String,
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PciDevice {
+    pub address: String,
+    pub class: PciIdentifier,
+    pub vendor: PciIdentifier,
+    pub device: PciIdentifier,
+    pub subsystem_vendor: Option<PciIdentifier>,
+    pub subsystem_device: Option<PciIdentifier>,
+    pub revision: Option<String>,
+    pub programming_interface: Option<String>,
+    pub driver: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -129,6 +154,8 @@ impl Device {
 pub struct Inventory {
     pub schema_version: u32,
     pub machine: Machine,
+    #[serde(default)]
+    pub pci_devices: Option<Vec<PciDevice>>,
     pub devices: Vec<Device>,
     pub warnings: Vec<String>,
 }

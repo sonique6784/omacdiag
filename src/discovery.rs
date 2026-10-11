@@ -3,7 +3,153 @@ use std::{
     collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
+    sync::{Arc, atomic::AtomicBool},
+    time::Duration,
 };
+
+fn host_command(program: &str, args: &[&str], max: usize) -> Result<String, String> {
+    let output = crate::process::capture(
+        crate::process::command(program, args),
+        None,
+        Duration::from_secs(3),
+        Arc::new(AtomicBool::new(false)),
+        max,
+    )?;
+    if output.code != Some(0) {
+        return Err(format!(
+            "exit status {:?}: {}",
+            output.code,
+            output.stderr.trim()
+        ));
+    }
+    if output.stdout.len() == max {
+        return Err("output limit reached".into());
+    }
+    String::from_utf8(output.stdout).map_err(|error| error.to_string())
+}
+
+fn omarchy_version(output: &str) -> Option<String> {
+    output.lines().find_map(|line| {
+        let (key, value) = line.split_once(':')?;
+        (key.trim() == "Version")
+            .then(|| value.trim().to_string())
+            .filter(|s| !s.is_empty())
+    })
+}
+
+fn pci_identifier(value: &str) -> Option<PciIdentifier> {
+    let (name, id) = value.trim().strip_suffix(']')?.rsplit_once(" [")?;
+    if id.is_empty() || !id.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return None;
+    }
+    Some(PciIdentifier {
+        name: name.to_string(),
+        id: id.to_ascii_lowercase(),
+    })
+}
+
+fn parse_pci_record(fields: &BTreeMap<&str, &str>) -> Option<PciDevice> {
+    Some(PciDevice {
+        address: fields.get("Slot")?.trim().to_string(),
+        class: pci_identifier(fields.get("Class")?)?,
+        vendor: pci_identifier(fields.get("Vendor")?)?,
+        device: pci_identifier(fields.get("Device")?)?,
+        subsystem_vendor: fields.get("SVendor").and_then(|v| pci_identifier(v)),
+        subsystem_device: fields.get("SDevice").and_then(|v| pci_identifier(v)),
+        revision: fields.get("Rev").map(|v| v.to_string()),
+        programming_interface: fields.get("ProgIf").map(|v| v.to_string()),
+        driver: fields.get("Driver").map(|v| v.to_string()),
+    })
+}
+
+fn parse_lspci(output: &str) -> Result<(Vec<PciDevice>, usize), String> {
+    let mut devices = Vec::new();
+    let mut malformed = 0;
+    let mut fields = BTreeMap::new();
+    for line in output.lines().chain(std::iter::once("")) {
+        if line.trim().is_empty() {
+            if !fields.is_empty() {
+                if let Some(device) = parse_pci_record(&fields) {
+                    devices.push(device);
+                } else {
+                    malformed += 1;
+                }
+                fields.clear();
+            }
+        } else if let Some((key, value)) = line.split_once(':') {
+            fields.insert(key.trim(), value.trim());
+        } else {
+            malformed += 1;
+        }
+    }
+    if !output.trim().is_empty() && devices.is_empty() {
+        return Err("no valid PCI records in lspci output".into());
+    }
+    devices.sort_by(|a, b| a.address.cmp(&b.address));
+    Ok((devices, malformed))
+}
+
+fn collect_host_metadata(inventory: &mut Inventory) {
+    inventory.machine.omarchy_version = host_command("pacman", &["-Qi", "omarchy"], 16 * 1024)
+        .ok()
+        .and_then(|output| omarchy_version(&output));
+    match host_command("lspci", &["-D", "-vmm", "-nn", "-k"], 2 * 1024 * 1024)
+        .and_then(|output| parse_lspci(&output))
+    {
+        Ok((devices, malformed)) => {
+            inventory.pci_devices = Some(devices);
+            if malformed > 0 {
+                inventory.warnings.push(format!(
+                    "lspci output contained {malformed} malformed record(s) or line(s)"
+                ));
+            }
+        }
+        Err(error) => inventory
+            .warnings
+            .push(format!("PCI inventory unavailable: {error}")),
+    }
+}
+
+#[cfg(test)]
+mod metadata_tests {
+    use super::*;
+
+    #[test]
+    fn parses_pacman_version_and_missing_package_information() {
+        assert_eq!(
+            omarchy_version("Name : omarchy\nVersion : 4.0.4-1\n"),
+            Some("4.0.4-1".into())
+        );
+        assert_eq!(
+            omarchy_version("error: package 'omarchy' was not found"),
+            None
+        );
+        assert_eq!(omarchy_version("Version :  \n"), None);
+    }
+
+    #[test]
+    fn parses_pci_names_ids_and_optional_fields() {
+        let output = "Slot:\t0000:00:02.0\nClass:\tVGA compatible controller [0300]\nVendor:\tIntel Corporation [8086]\nDevice:\tIvy Bridge mobile GT2 [HD Graphics 4000] [0166]\nSVendor:\tApple Inc. [106b]\nSDevice:\tDevice [00fd]\nRev:\t09\nProgIf:\t00\nDriver:\ti915\n\nSlot:\t0000:02:00.0\nClass:\tNetwork controller [0280]\nVendor:\tBroadcom Inc. [14e4]\nDevice:\tBCM43224 [4353]\n\n";
+        let (devices, malformed) = parse_lspci(output).unwrap();
+        assert_eq!(malformed, 0);
+        assert_eq!(devices.len(), 2);
+        assert_eq!(
+            devices[0].device.name,
+            "Ivy Bridge mobile GT2 [HD Graphics 4000]"
+        );
+        assert_eq!(devices[0].device.id, "0166");
+        assert_eq!(devices[0].driver.as_deref(), Some("i915"));
+        assert_eq!(devices[0].subsystem_vendor.as_ref().unwrap().id, "106b");
+        assert!(devices[1].driver.is_none());
+        assert!(devices[1].subsystem_vendor.is_none());
+    }
+
+    #[test]
+    fn rejects_unparseable_pci_output_without_inventing_devices() {
+        assert!(parse_lspci("Slot:\t0000:00:02.0\nClass:\tbad\n").is_err());
+        assert_eq!(parse_lspci("").unwrap(), (vec![], 0));
+    }
+}
 
 #[derive(Clone)]
 pub struct LinuxPaths {
@@ -136,15 +282,24 @@ fn v4l2_can_capture(caps: u32) -> bool {
 }
 
 pub fn discover() -> Inventory {
+    let mut inventory = discover_for_probe();
+    if cfg!(target_os = "linux") {
+        collect_host_metadata(&mut inventory);
+    }
+    inventory
+}
+
+pub fn discover_for_probe() -> Inventory {
     if cfg!(target_os = "linux") {
         discover_at(&LinuxPaths::default())
     } else {
         Inventory { schema_version: SCHEMA_VERSION,
         machine: Machine { manufacturer: "unknown".into(), model: "unknown".into(), serial: None,
+            omarchy_version: None, board_name: None, board_version: None,
             os: std::env::consts::OS.into(), architecture: std::env::consts::ARCH.into(),
             distribution: "unsupported host".into(), kernel: "unknown".into(), model_profile: None,
             expected_ports: BTreeMap::new(), profile_sources: vec![] },
-        devices: vec![], warnings: vec!["Hardware discovery and functional tests require Linux. This host can build the core and inspect fixture reports.".into()] }
+        pci_devices: None, devices: vec![], warnings: vec!["Hardware discovery and functional tests require Linux. This host can build the core and inspect fixture reports.".into()] }
     }
 }
 
@@ -164,6 +319,9 @@ pub fn discover_at(p: &LinuxPaths) -> Inventory {
             manufacturer: read(dmi.join("sys_vendor")).unwrap_or("unknown".into()),
             model: read(dmi.join("product_name")).unwrap_or("unknown".into()),
             serial: read(dmi.join("product_serial")),
+            omarchy_version: None,
+            board_name: read(dmi.join("board_name")),
+            board_version: read(dmi.join("board_version")),
             os: "linux".into(),
             distribution,
             kernel: read(p.proc.join("sys/kernel/osrelease")).unwrap_or("unknown".into()),
@@ -172,6 +330,7 @@ pub fn discover_at(p: &LinuxPaths) -> Inventory {
             expected_ports: BTreeMap::new(),
             profile_sources: vec![],
         },
+        pci_devices: None,
         devices: vec![],
         warnings: vec![],
     };
