@@ -594,7 +594,7 @@ fn bluetooth(req: &WorkerRequest, d: &Device) -> TestResult {
     }
 }
 fn removable(req: &WorkerRequest, d: &Device) -> TestResult {
-    let fresh = discovery::discover();
+    let fresh = discovery::discover_for_probe();
     let added: Vec<_> = fresh
         .devices
         .iter()
@@ -723,7 +723,7 @@ fn removable(req: &WorkerRequest, d: &Device) -> TestResult {
     r
 }
 fn thunderbolt(req: &WorkerRequest, d: &Device) -> TestResult {
-    let current = discovery::discover();
+    let current = discovery::discover_for_probe();
     let label = d
         .sysfs_path
         .as_ref()

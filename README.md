@@ -79,7 +79,7 @@ In Guided mode, checks requiring a technician's observation run once and then of
 | Camera capture/preview | `ffmpeg` with V4L2 and `-fps_mode` support; working camera driver/firmware |
 | Microphone/speaker tests | ALSA `arecord`, `aplay`, `amixer`; explicit usable PCM endpoints |
 | Storage health | `smartctl` from smartmontools |
-| GPU readback | `libEGL.so.1`, GLES2 implementation and EGL device/render-node mapping |
+| GPU readback and 3D check | `libEGL.so.1`, GLES2 implementation and EGL device/render-node mapping |
 | Network peer exchange | `ping` |
 | Bluetooth verification | BlueZ and `busctl`; technician connects the test peripheral beforehand |
 | Keyboard backlight | UPower keyboard-backlight D-Bus control through `busctl`; technician must confirm the visible change |
@@ -102,6 +102,10 @@ CLI report JSON goes to stdout; progress/preflight goes to stderr. Reports are c
 - Audio and image buffers remain transient and do not enter the report; JPEG previews travel only over the local process pipe.
 
 Schemas: [report](schemas/report.schema.json), [inventory](schemas/inventory.schema.json), [plan](schemas/plan.schema.json), [requests](schemas/request.schema.json), [events](schemas/event.schema.json).
+
+The report's `inventory.machine` includes the Omarchy package version and DMI `board_name` (Board ID) and `board_version` when available. `inventory.pci_devices` lists every device from `lspci` with its PCI address, class/vendor/device names and numeric IDs, optional subsystem IDs, revision, programming interface, and bound driver. A `null` PCI list means collection was unavailable; an empty list means no devices were reported. PCI entries provide inventory evidence and do not add diagnostic tests.
+
+Each detected GPU offers a separate GLES2 3D check. It verifies textured geometry, shaders, depth and offscreen framebuffer pixels, then reports GL versions, limits, and synchronized 640×480 offscreen FPS. Quick mode measures for 3 seconds; extended mode for 15 seconds after warmup. FPS has no pass threshold and is not displayed refresh rate or a comparable GPU benchmark.
 
 ## Development and packaging
 

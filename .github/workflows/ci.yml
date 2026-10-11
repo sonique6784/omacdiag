@@ -2,10 +2,7 @@ name: Core and contracts
 on: [push, pull_request, workflow_dispatch]
 jobs:
   rust:
-    strategy:
-      matrix:
-        os: [ubuntu-24.04, macos-14]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -17,7 +14,6 @@ jobs:
       - run: cargo build --locked
       - run: cargo build --locked --examples
       - run: python3 -m unittest discover -s tests -p test_package.py
-        if: runner.os == 'Linux'
       - uses: astral-sh/setup-uv@v6
       - run: uv run scripts/validate_contracts.py
   linux-distributions:

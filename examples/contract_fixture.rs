@@ -36,6 +36,9 @@ fn main() {
             manufacturer: "SYNTHETIC FIXTURE".into(),
             model: "contract-fixture".into(),
             serial: None,
+            omarchy_version: Some("4.0.4-1".into()),
+            board_name: Some("Mac-66F35F19FE2A0D05".into()),
+            board_version: Some("MacBookAir5,1".into()),
             os: "fixture".into(),
             distribution: "fixture".into(),
             kernel: "fixture".into(),
@@ -44,6 +47,32 @@ fn main() {
             expected_ports: BTreeMap::new(),
             profile_sources: vec![],
         },
+        pci_devices: Some(vec![PciDevice {
+            address: "0000:00:02.0".into(),
+            class: PciIdentifier {
+                name: "VGA compatible controller".into(),
+                id: "0300".into(),
+            },
+            vendor: PciIdentifier {
+                name: "Intel Corporation".into(),
+                id: "8086".into(),
+            },
+            device: PciIdentifier {
+                name: "Ivy Bridge mobile GT2 [HD Graphics 4000]".into(),
+                id: "0166".into(),
+            },
+            subsystem_vendor: Some(PciIdentifier {
+                name: "Apple Inc.".into(),
+                id: "106b".into(),
+            }),
+            subsystem_device: Some(PciIdentifier {
+                name: "Device".into(),
+                id: "00fd".into(),
+            }),
+            revision: Some("09".into()),
+            programming_interface: Some("00".into()),
+            driver: Some("i915".into()),
+        }]),
         devices: kinds
             .into_iter()
             .map(|k| Device::detected(k, format!("fixture:{}", k.key()), "Synthetic device"))

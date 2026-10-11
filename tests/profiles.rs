@@ -7,6 +7,9 @@ fn inventory(model: &str) -> Inventory {
             manufacturer: "Apple Inc.".into(),
             model: model.into(),
             serial: None,
+            omarchy_version: None,
+            board_name: None,
+            board_version: None,
             os: "linux".into(),
             distribution: "fixture".into(),
             kernel: "fixture".into(),
@@ -15,6 +18,7 @@ fn inventory(model: &str) -> Inventory {
             expected_ports: BTreeMap::new(),
             profile_sources: vec![],
         },
+        pci_devices: None,
         devices: vec![],
         warnings: vec![],
     }

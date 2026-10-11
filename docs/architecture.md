@@ -38,15 +38,15 @@ Implemented:
 - CPU arithmetic and bounded allocated-memory patterns.
 - Drive health, distributed read-only samples, optical samples and removable-media reference checks.
 - Transient camera preview/content comparison, microphone PCM levels/clipping, explicit speaker playback and microphone correlation of channel-specific tones.
-- Explicit per-GPU EGL/GLES2 colour-quadrant readback with software-renderer rejection.
+- Explicit per-GPU EGL/GLES2 colour-quadrant readback and a separate textured 3D/depth/FBO check with synchronized offscreen FPS; both reject software renderers.
 - DRM connector/EDID checks, charging transitions and health telemetry.
 - Interface-bound ICMP exchange, adapter-specific BlueZ connection verification, Thunderbolt insertion/link evidence.
 - Bounded UPower keyboard-backlight brightness cycle with a separate restorer; final visual verdict remains guided.
 - Operator assessment for physical/visual functions, peripherals, keyboard, trackpad and model-specific components.
 
-Quick CPU/RAM workloads last approximately 2–3 seconds; extended CPU/RAM workloads last 120 seconds each and GPU readback lasts 60 seconds. Storage extended mode samples up to 128 MiB distributed across the device, bounded by its deadline. Camera evidence capture lasts roughly four seconds; the guided image-quality preview continues through technician assessment. The planner sums actual estimates; a full suite may exceed 5–10 minutes because operators and additional devices increase scope.
+Quick CPU/RAM workloads last approximately 2–3 seconds; extended CPU/RAM workloads last 120 seconds each, GPU readback lasts 60 seconds, and the separate 3D FPS measurement lasts 15 seconds after warmup. Storage extended mode samples up to 128 MiB distributed across the device, bounded by its deadline. Camera evidence capture lasts roughly four seconds; the guided image-quality preview continues through technician assessment. The planner sums actual estimates; a full suite may exceed 5–10 minutes because operators and additional devices increase scope.
 
-Extended mode does not implement exhaustive RAM/VRAM certification, a full disk scan, destructive writes, charging cycles, or an all-core/3D stress suite. Report evidence describes these limits. Thermal observations at or above 90°C stop load probes conservatively.
+Extended mode does not implement exhaustive RAM/VRAM certification, a full disk scan, destructive writes, charging cycles, or an all-core stress suite. The 3D check exercises one fixed GLES2 workload, not all graphics features. Report evidence describes these limits. Thermal observations at or above 90°C stop load probes conservatively.
 
 ## Phase 5: Quickshell frontend
 
