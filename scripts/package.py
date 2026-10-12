@@ -56,7 +56,11 @@ def main():
     for binary in ["omacdiag", "omacdiag-helper"]:
         shutil.copy2(args.binaries / binary, stage / "bin" / binary)
     for directory in ["schemas", "packaging", "docs", "third_party"]:
-        shutil.copytree(ROOT / directory, stage / directory)
+        shutil.copytree(
+            ROOT / directory,
+            stage / directory,
+            ignore=shutil.ignore_patterns("releases") if directory == "docs" else None,
+        )
     shutil.copy2(ROOT / "README.md", stage / "README.md")
     shutil.copy2(ROOT / "LICENSE", stage / "LICENSE")
     if args.runtime:
