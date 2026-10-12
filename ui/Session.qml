@@ -4,6 +4,7 @@ import Quickshell.Io
 
 QtObject {
     id: session
+    signal stopped()
     property var inventory: null
     property var plan: null
     property var preparation: []
@@ -80,9 +81,13 @@ QtObject {
             test_id: prompt.test.id, prompt_id: prompt.prompt_id, stage: "assess"});
     }
     function close() {
+        if (closing) return;
         closing = true;
-        send("quit");
-        if (!backend.running) Qt.quit();
+        if (backend.running) {
+            send("quit");
+            stopTimeout.start();
+        }
+        else stopped();
     }
     function receive(event) {
         if (event.protocol_version !== 1) { error = "Unsupported engine protocol"; return; }
@@ -137,7 +142,7 @@ QtObject {
         }
     }
     property Process backend: Process {
-        command: [Quickshell.env("OMACDIAG_ENGINE") || "omacdiag", "session"]
+        command: [Quickshell.env("OMACDIAG_ENGINE") || "/usr/bin/omacdiag", "session"]
         running: true
         stdinEnabled: true
         stdout: SplitParser {
@@ -148,9 +153,14 @@ QtObject {
         }
         stderr: SplitParser { onRead: line => console.warn("omacdiag: " + line) }
         onExited: (code, exitStatus) => {
+            stopTimeout.stop();
             session.running = false;
-            if (session.closing) { Qt.quit(); return; }
+            if (session.closing) { session.stopped(); return; }
             if (!session.finished) session.error = "Engine stopped (" + code + "). The last saved report is at " + session.reportPath;
         }
+    }
+    property Timer stopTimeout: Timer {
+        interval: 3000
+        onTriggered: if (backend.running) backend.running = false
     }
 }

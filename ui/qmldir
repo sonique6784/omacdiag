@@ -7,5 +7,6 @@ AppProgressBar 1.0 AppProgressBar.qml
 AppTabButton 1.0 AppTabButton.qml
 AppTextArea 1.0 AppTextArea.qml
 Card 1.0 Card.qml
+DiagnosticView 1.0 DiagnosticView.qml
 Patterns 1.0 Patterns.qml
 Session 1.0 Session.qml

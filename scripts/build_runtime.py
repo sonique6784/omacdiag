@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Build pinned Quickshell against a supplied matching Qt SDK; stage a private runtime."""
+"""Build pinned Quickshell against a supported Qt SDK; stage a private runtime."""
 import argparse
 import json
 import platform
 import shutil
 import subprocess
 from pathlib import Path
+
+from runtime_versions import qt_version_at_least
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -21,8 +23,8 @@ def main():
     qt = args.qt_root.resolve()
     source = args.quickshell_source.resolve()
     version = subprocess.check_output([str(qt / "bin/qmake"), "-query", "QT_VERSION"], text=True).strip()
-    if version != versions["qt"]:
-        parser.error(f"Qt must be {versions['qt']}; found {version}")
+    if not qt_version_at_least(version, versions["qt_minimum"]):
+        parser.error(f"Qt must be >= {versions['qt_minimum']}; found {version}")
     tag = subprocess.check_output(["git", "-C", str(source), "describe", "--tags", "--exact-match"], text=True).strip()
     if tag != "v" + versions["quickshell"]:
         parser.error("Quickshell source must be checked out at the pinned release tag")
@@ -48,7 +50,7 @@ def main():
     for name in ["LICENSES", "licenses"]:
         if (qt / name).is_dir():
             shutil.copytree(qt / name, licenses / "qt", dirs_exist_ok=True)
-    (output / "runtime-versions.json").write_text(json.dumps(versions, indent=2) + "\n")
+    (output / "runtime-versions.json").write_text(json.dumps({**versions, "qt": version}, indent=2) + "\n")
     # Delete only this script's newly created build artifacts, not an existing checkout.
     shutil.rmtree(build)
     print(output)

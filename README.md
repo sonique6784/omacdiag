@@ -120,3 +120,25 @@ uv run scripts/validate_contracts.py
 The contract validator uses a development-only Python dependency and does not execute hardware probes. The application has no Python runtime dependency. Regenerate schemas after contract changes with `python3 scripts/generate_schemas.py`.
 
 See [architecture and phases](docs/architecture.md), [session protocol](docs/protocol.md), [release packaging](docs/packaging.md), and [physical validation checklist](docs/validation.md).
+
+## Omarchy menu plugin
+
+The plugin opens the diagnostic UI inside the existing Omarchy shell. Install the tested x86-64 CLI archive first; it supplies `/usr/bin/omacdiag`. The plugin does not install the binary or request administrator access. The separate standalone desktop remains available for development.
+
+```sh
+omarchy plugin add https://github.com/sonique6784/omacdiag.git --enable
+python3 ~/.config/omarchy/plugins/io.github.sonique6784.omacdiag/scripts/menu_entry.py install
+```
+
+Open **Omarchy menu → Trigger → Hardware → OmacDiag**, or run `omarchy-shell shell summon io.github.sonique6784.omacdiag '{}'`. Close it with the **Close** button or `omarchy-shell shell hide io.github.sonique6784.omacdiag`. The menu extension is user-owned, so adding the row is a separate explicit setup step. The UI starts `/usr/bin/omacdiag session` and stops the engine when the panel closes.
+
+Remove the menu row before removing the plugin:
+
+```sh
+python3 ~/.config/omarchy/plugins/io.github.sonique6784.omacdiag/scripts/menu_entry.py remove
+omarchy plugin remove io.github.sonique6784.omacdiag
+```
+
+The menu helper preserves other entries, creates a timestamped backup, and refuses to remove an OmacDiag block that somebody edited. To uninstall the CLI release, run `sudo sh /opt/omacdiag/packaging/uninstall.sh`. The optional SMART helper is removed only when its OmacDiag policy is present.
+
+Run `./verify-plugin.sh --preflight` for software checks. From an interactive Omarchy session, commit the release candidate and run `./precheck.sh`; it prepares missing Arch packages, verifies Qt 6.8+ under `/usr/lib` and `/usr/lib/qt6`, and starts the CLI archive and in-shell plugin verification. Output stays under `/tmp/omacdiag-verify-plugin.*/`; copy the verified archive and checksum to durable storage. Finish disable, re-enable, and removal checks, then record acceptance as described in [plugin publication](docs/plugin-publication.md). `./publish.sh` reviews the marketplace submission; `./publish.sh --submit` creates its issue after an explicit confirmation.

@@ -21,6 +21,14 @@ if [ -x "$runtime/bin/quickshell" ]; then
     export QT_PLUGIN_PATH="$runtime/plugins"
     export QML_IMPORT_PATH="$runtime/qml"
     quickshell_bin="$runtime/bin/quickshell"
+elif [ -f "$app_root/system-qt.json" ]; then
+    if [ ! -x /usr/bin/quickshell ] || [ ! -d /usr/lib/qt6/plugins ] || [ ! -d /usr/lib/qt6/qml ]; then
+        echo 'OmacDiag requires system Quickshell and Qt under /usr/bin and /usr/lib/qt6.' >&2
+        exit 1
+    fi
+    export QT_PLUGIN_PATH=/usr/lib/qt6/plugins
+    export QML_IMPORT_PATH=/usr/lib/qt6/qml
+    quickshell_bin=/usr/bin/quickshell
 else
     quickshell_bin=${OMACDIAG_QUICKSHELL:-quickshell}
 fi

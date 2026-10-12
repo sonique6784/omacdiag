@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Stage a CLI or desktop tar archive from Linux binaries and a pinned runtime."""
+"""Stage a CLI or desktop tar archive from Linux binaries and a supported runtime."""
 import argparse
 import json
 import os
 import platform
 import shutil
 import tarfile
+import tomllib
 from pathlib import Path
+
+from runtime_versions import qt_version_at_least
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -14,6 +17,7 @@ def main():
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--runtime", type=Path)
+    group.add_argument("--system-qt", action="store_true")
     group.add_argument("--cli-only", action="store_true")
     parser.add_argument("--binaries", type=Path, default=ROOT / "target/release")
     parser.add_argument("--output", type=Path, default=ROOT / "dist")
@@ -21,7 +25,8 @@ def main():
     if platform.system() != "Linux" or platform.machine() != "x86_64":
         parser.error("Release packages require x86_64 Linux binaries")
     variant = "cli" if args.cli_only else "desktop"
-    name = f"omacdiag-0.1.0-linux-x86_64-{variant}"
+    version = tomllib.loads((ROOT / "Cargo.toml").read_text())["package"]["version"]
+    name = f"omacdiag-{version}-linux-x86_64-{variant}"
     stage = args.output / name
     archive = args.output / (name + ".tar.gz")
     if stage.exists() or archive.exists():
@@ -36,8 +41,10 @@ def main():
             parser.error(f"Missing runtime manifest: {manifest}")
         pinned = json.loads((ROOT / "packaging/runtime-versions.json").read_text())
         supplied = json.loads(manifest.read_text())
-        if any(supplied.get(k) != pinned[k] for k in ["qt", "quickshell", "architecture"]):
-            parser.error("Runtime does not match pinned versions")
+        if not qt_version_at_least(supplied.get("qt", ""), pinned["qt_minimum"]):
+            parser.error(f"Runtime Qt must be >= {pinned['qt_minimum']}")
+        if any(supplied.get(k) != pinned[k] for k in ["quickshell", "architecture"]):
+            parser.error("Runtime does not match required Quickshell version and architecture")
         quickshell = args.runtime / "bin/quickshell"
         if not quickshell.is_file() or not os.access(quickshell, os.X_OK):
             parser.error("Runtime is missing executable bin/quickshell")
@@ -54,6 +61,15 @@ def main():
     shutil.copy2(ROOT / "LICENSE", stage / "LICENSE")
     if args.runtime:
         shutil.copytree(args.runtime, stage / "runtime", symlinks=True)
+    if args.system_qt:
+        requirements = json.loads((ROOT / "packaging/runtime-versions.json").read_text())
+        (stage / "system-qt.json").write_text(json.dumps({
+            "provider": "system",
+            "qt_minimum": requirements["qt_minimum"],
+            "quickshell": requirements["quickshell"],
+            "architecture": requirements["architecture"],
+        }, indent=2) + "\n")
+    if args.runtime or args.system_qt:
         shutil.copytree(ROOT / "ui", stage / "ui")
         (stage / "scripts").mkdir()
         shutil.copy2(ROOT / "scripts/launch-ui.sh", stage / "scripts/launch-ui.sh")

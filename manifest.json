@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.sonique6784.omacdiag",
+  "name": "OmacDiag",
+  "version": "0.1.0",
+  "author": "Sonique",
+  "license": "MIT",
+  "description": "Intel Mac hardware diagnostics inside the Omarchy shell.",
+  "kinds": ["panel"],
+  "entryPoints": {
+    "panel": "plugin/Launcher.qml"
+  }
+}

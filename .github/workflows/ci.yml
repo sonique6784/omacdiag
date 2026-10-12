@@ -14,6 +14,8 @@ jobs:
       - run: cargo build --locked
       - run: cargo build --locked --examples
       - run: python3 -m unittest discover -s tests -p test_package.py
+      - run: python3 -m unittest discover -s tests -p test_plugin.py
+      - run: python3 -m unittest discover -s tests -p test_precheck.py
       - uses: astral-sh/setup-uv@v6
       - run: uv run scripts/validate_contracts.py
   linux-distributions:

@@ -1,6 +1,6 @@
 # Linux release packaging
 
-Target environments: Ubuntu 24.04/26.04 LTS, Debian 13 and Fedora 44 on x86-64, including X11 and Wayland. These are validation targets, not a claim of tested desktop/hardware compatibility.
+Target environments: Omarchy Quattro, Ubuntu 24.04/26.04 LTS, Debian 13 and Fedora 44 on x86-64, including X11 and Wayland where applicable. These are validation targets, not a claim of tested desktop/hardware compatibility.
 
 ## CLI archive
 
@@ -13,20 +13,24 @@ python3 scripts/package.py --cli-only
 
 No hardware libraries are linked at compile time. EGL is loaded dynamically on Linux. Runtime diagnostic tools remain distribution dependencies listed in the README.
 
-## Matched desktop runtime
+## Omarchy desktop with system Qt
 
-Quickshell uses private Qt APIs and must be built against the same Qt libraries shipped with it. The recipe pins **Quickshell 0.3.1 / Qt 6.8.3** in `packaging/runtime-versions.json`; Ubuntu 24.04's stock Qt is insufficient for current Quickshell's Qt 6.6 minimum. Reference: [upstream build instructions](https://github.com/quickshell-mirror/quickshell/blob/v0.3.1/BUILD.md).
+On Omarchy, `python3 scripts/package.py --system-qt` creates a desktop archive that uses `/usr/bin/quickshell` and the matching Qt libraries in `/usr/lib`, with plugins and QML modules in `/usr/lib/qt6`. Use this only for a separate standalone desktop release; the Omarchy plugin uses the CLI archive. The archive records `system-qt.json` and contains no Qt libraries; installing it requires system Quickshell. This archive targets Omarchy/Arch systems with the tested Quickshell and Qt versions and must be rechecked after those packages change.
 
-Obtain a Linux x86-64 Qt 6.8.3 SDK with base, declarative, Quick Controls, Wayland private headers and ShaderTools. Install native build dependencies including CMake, Ninja, CLI11, pkg-config, libdrm, Wayland protocols/scanner, SPIR-V tools and XCB headers. Keep the SDK/toolchain build environment fixed.
+## Matched private desktop runtime
+
+Quickshell uses private Qt APIs and must be built against the same Qt libraries shipped with it. The recipe requires **Quickshell 0.3.1 / Qt 6.8.0 or newer** in `packaging/runtime-versions.json`; Ubuntu 24.04's stock Qt is insufficient for current Quickshell's Qt 6.6 minimum. Each built runtime records its exact Qt version. Reference: [upstream build instructions](https://github.com/quickshell-mirror/quickshell/blob/v0.3.1/BUILD.md).
+
+Obtain a complete Linux x86-64 Qt 6.8+ SDK with base, declarative, Quick Controls, Wayland private headers and ShaderTools. Install native build dependencies including CMake, Ninja, CLI11, pkg-config, libdrm, Wayland protocols/scanner, SPIR-V tools and XCB headers. Keep the SDK/toolchain build environment fixed. A system `qmake6` version alone does not provide the SDK tree expected by this recipe.
 
 ```sh
 git clone --branch v0.3.1 --depth 1 https://github.com/quickshell-mirror/quickshell.git /tmp/omacdiag-quickshell
-python3 scripts/build_runtime.py --qt-root /path/to/Qt/6.8.3/gcc_64 \
+python3 scripts/build_runtime.py --qt-root /path/to/Qt/6.x.y/gcc_64 \
   --quickshell-source /tmp/omacdiag-quickshell
 python3 scripts/package.py --runtime dist/runtime
 ```
 
-The builder checks the Qt version and a clean tagged Quickshell checkout, disables unused shell integrations, stages Qt libraries/plugins/QML and writes a manifest. The packager checks the pinned manifest, required executables and runtime directories before staging, and refuses to overwrite an existing staging directory or archive. Run `python3 -m unittest discover -s tests -p test_package.py` for packaging preflight tests; these use dummy executables and do not establish runtime compatibility. The launcher uses this private runtime without modifying system Qt.
+The builder checks the Qt minimum and a clean tagged Quickshell checkout, disables unused shell integrations, stages Qt libraries/plugins/QML and writes the exact Qt version to its manifest. The packager checks that version against the minimum, plus the Quickshell version, architecture, required executables and runtime directories before staging; it refuses to overwrite an existing staging directory or archive. Run `python3 -m unittest discover -s tests -p test_package.py` for packaging preflight tests; these use dummy executables and do not establish runtime compatibility. The launcher uses this private runtime without modifying system Qt. Test the final archive with the exact Qt SDK selected for release, because newer Qt releases can change private APIs.
 
 Before redistribution, include the complete third-party licensing/source materials for the Qt and Quickshell distribution being used, and verify dependency resolution with `ldd` on each target distribution. The staging script copies license directories where supplied, but SDK contents differ and do not constitute a release audit.
 
@@ -44,6 +48,20 @@ Install the SMART helper only when desired:
 sudo INSTALL_SMART_HELPER=1 sh packaging/install.sh
 ```
 
-`DESTDIR=/path/to/staging sh packaging/install.sh` stages package files without writing to the host installation. The UI runs as the user; the helper lives at `/usr/libexec/omacdiag-helper` and its policy authorizes only that executable. It is never setuid. Enable helper queries with `OMACDIAG_USE_HELPER=1`; blocked privilege requests remain reportable.
+`DESTDIR=/path/to/staging sh packaging/install.sh` stages package files without writing to the host installation. The UI and engine run as the user; the helper lives at `/usr/libexec/omacdiag-helper` and its policy authorizes only that executable. It is never setuid. Enable helper queries with `OMACDIAG_USE_HELPER=1`; blocked privilege requests remain reportable.
 
 The recipe produces tar archives plus an installation layout. Native `.deb`/`.rpm`, signed artifacts, a bootable image and firmware distribution are not generated by this release recipe.
+
+## Omarchy plugin engine release and removal
+
+For an Omarchy plugin release, build and test the CLI archive with `./precheck.sh`, then publish `omacdiag-<version>-linux-x86_64-cli.tar.gz` and its `.sha256` file under GitHub tag `v<version>`. From the output directory, generate the checksum with `sha256sum <archive> > <archive>.sha256` so the recorded filename is the archive basename. The plugin uses the system Omarchy shell and Qt; the archive contains the Rust engine but no Quickshell or Qt libraries.
+
+Users verify and install the downloaded archive as follows:
+
+```sh
+sha256sum -c omacdiag-<version>-linux-x86_64-cli.tar.gz.sha256
+tar -xzf omacdiag-<version>-linux-x86_64-cli.tar.gz
+sudo sh omacdiag-<version>-linux-x86_64-cli/packaging/install.sh
+```
+
+Remove the installed CLI with `sudo sh /opt/omacdiag/packaging/uninstall.sh`. This does not remove user reports under `${XDG_STATE_HOME:-~/.local/state}/omacdiag`. Remove the Omarchy menu row and plugin separately as documented in the README. The installer refuses to replace an existing `/opt/omacdiag` tree, command, or optional helper policy. Uninstall an older OmacDiag release before installing its replacement.
