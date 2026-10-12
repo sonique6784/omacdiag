@@ -137,6 +137,8 @@ class PackageTests(unittest.TestCase):
         first = self.run_package("--cli-only")
         self.assertEqual(first.returncode, 0, first.stderr)
         self.assertTrue((self.output / NAME / "bin/omacdiag").is_file())
+        self.assertTrue((self.output / NAME / "third_party/README.md").is_file())
+        self.assertTrue((self.output / NAME / "third_party/licenses/unicode-ident-1.0.25/LICENSE-UNICODE").is_file())
         archive = self.output / (NAME + ".tar.gz")
         self.assertTrue(archive.is_file())
         original_size = os.stat(archive).st_size

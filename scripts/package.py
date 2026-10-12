@@ -55,7 +55,7 @@ def main():
     (stage / "bin").mkdir()
     for binary in ["omacdiag", "omacdiag-helper"]:
         shutil.copy2(args.binaries / binary, stage / "bin" / binary)
-    for directory in ["schemas", "packaging", "docs"]:
+    for directory in ["schemas", "packaging", "docs", "third_party"]:
         shutil.copytree(ROOT / directory, stage / directory)
     shutil.copy2(ROOT / "README.md", stage / "README.md")
     shutil.copy2(ROOT / "LICENSE", stage / "LICENSE")

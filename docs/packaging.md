@@ -11,7 +11,7 @@ cargo build --locked --release
 python3 scripts/package.py --cli-only
 ```
 
-No hardware libraries are linked at compile time. EGL is loaded dynamically on Linux. Runtime diagnostic tools remain distribution dependencies listed in the README.
+No hardware libraries are linked at compile time. EGL is loaded dynamically on Linux. Runtime diagnostic tools remain distribution dependencies listed in the README. The CLI archive includes `third_party/` with the license and notice files for the Rust crates selected by the Linux x86-64 dependency graph.
 
 ## Omarchy desktop with system Qt
 
